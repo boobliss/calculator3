@@ -8,16 +8,15 @@
  ============================================================================
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 
-//список для хранения всех цисел и символов операции
-typedef struct spisok {
+//очередь для хранения всех цисел и символов операции
+typedef struct turn {
 	int size;
 	char *element;
-	struct spisok *next;
-} spisok;
+	struct turn *next;
+} turn;
 
 //список, коротый храник каждую цифру числа
 typedef struct number {
@@ -31,19 +30,8 @@ typedef struct stack {
 	struct stack *next;
 } stack;
 
-//ф-я, которая находит последний элемнт списка
-spisok* getLast(spisok* head_last) {
-	if (head_last == NULL)
-		return NULL;
-	//пока существует следующий элемент, переходим к следующему элементу
-	while (head_last->next) {
-		head_last = head_last->next;
-	}
-	return head_last;
-}
-
-//функция добавления последнего эклемента в список
-void addElement(FILE* file, char c, spisok* head_spisok) {
+//функция добавления последнего эклемента в очереди
+turn* addElement(FILE* file, char c) {
 	// объявили первый элемент списка с цифрами
 	number* head_number;
 	// чтобы не потерять первый элемент
@@ -54,8 +42,8 @@ void addElement(FILE* file, char c, spisok* head_spisok) {
 	//чтобы не потерять начало
 	last_number = head_number;
 
-	//инициализируем и выделяем память для временного элемента списка
-	spisok* tmp = (spisok*) malloc(sizeof(spisok));
+	//инициализируем и выделяем память для временного элемента очереди
+	turn* tmp = (turn*) malloc(sizeof(turn));
 
 	//размер массива с числами или операциями
 	int size = 0;
@@ -88,15 +76,13 @@ void addElement(FILE* file, char c, spisok* head_spisok) {
 	last_number = head_number;
 	tmp->size = size;
 	tmp->element = malloc(size * sizeof(char));
-	//заполняем список с массивами
+	//заполняем очередь с массивами
 	for (int i = 0; i < size; i++) {
 		tmp->element[i] = last_number->value;
 		if (last_number->next)
 			last_number = last_number->next;
 	}
-
-	spisok* last = getLast(head_spisok);
-	last->next = tmp;
+	return tmp;
 }
 
 //добавление чисел в стэк
@@ -135,29 +121,34 @@ int main(void) {
 	read_file = fopen("read_file.txt", "r");
 	char c;
 
-	// создаём первый элемент списка
-	spisok* head_spisok;
-	head_spisok = (spisok*) malloc(sizeof(spisok));
+	// создаём первый элемент очереди
+	turn* head_turn;
+	head_turn = (turn*) malloc(sizeof(turn));
 	fscanf(read_file, "%c", &c);
-	addElement(read_file, c, head_spisok);
+	head_turn = addElement(read_file, c);
+
+	//инициализируем еткущий элемент очереди с числами или операциями
+	turn* current;
+	current = (turn*) malloc(sizeof(turn));
+	//чтобы не потерять начало
+	current = head_turn;
 
 	//читаем числа и операции пока не конец файла
 	while (!feof(read_file)) {
 		fscanf(read_file, "%c", &c);
-		addElement(read_file, c, head_spisok);
+		current->next = addElement(read_file, c);
+		current = current->next;
 	}
 	fclose(read_file);
-	//инициализируем еткущий элемент списка с числами или операциями
-	spisok* current;
-	current = (spisok*) malloc(sizeof(spisok));
-	//чтобы не потерять начало
-	current = head_spisok->next;
+
+	//возвращаемся в начало очереди
+	current = head_turn;
+
 	write_file = fopen("result.txt", "w");
 
 	stack* head_stack = (stack*)malloc(sizeof(stack));
-	for(int i = 0; i < current->size; i++)
-		printf("%c", current->element[i]);
 	head_stack = addElementStack(current->element, head_stack);
+
 	current = current->next;
 
 	while (current->next) {
@@ -181,4 +172,3 @@ int main(void) {
 
 	return EXIT_SUCCESS;
 }
-
